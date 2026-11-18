@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clip Maker Studio</title>
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%239466ff'/><stop offset='100%25' stop-color='%238257e5'/></linearGradient></defs><rect x='2' y='2' width='60' height='60' rx='14' fill='url(%23g)'/><path d='M8 16 L40 16 L40 21 L8 21 Z' fill='%23ffffff' opacity='0.9'/><path d='M12 16 L17 21 L22 21 L17 16 Z' fill='%23202024'/><path d='M24 16 L29 21 L34 21 L29 16 Z' fill='%23202024'/><rect x='8' y='23' width='36' height='22' rx='3' fill='%23ffffff'/><polygon points='21,28 30,34 21,40' fill='%238257e5'/><circle cx='50' cy='14' r='7' fill='%23ffffff'/><path d='M47 14 L49 16 L53 11' stroke='%238257e5' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>Clip Maker Studio</h1>
+  </header>
+
+  <div class="studio-container">
+
+    <!-- PANEL IZQUIERDO: REPRODUCTOR Y LÍNEA DE TIEMPO -->
+    <main class="panel left-panel">
+      <div class="card video-card">
+        <div class="card-header-row">
+          <h2>Video Subido</h2>
+          <label class="btn btn-upload">
+            📁 Cargar Video
+            <input type="file" id="videoInput" accept="video/*" hidden>
+          </label>
+        </div>
+
+        <div class="video-wrapper" id="dropArea">
+          <video id="mainVideo" crossorigin="anonymous"></video>
+          <div class="drop-overlay">
+            <span>Arrastra tu video aquí</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card timeline-card">
+        <div class="card-header-row">
+          <h3>Línea de Tiempo y Controles</h3>
+          <div class="zoom-controls">
+            <button class="btn btn-icon" id="btnZoomOut" title="Alejar zoom">−</button>
+            <span id="zoomLevelLabel">100%</span>
+            <button class="btn btn-icon" id="btnZoomIn" title="Acercar zoom">+</button>
+            <button class="btn btn-icon" id="btnZoomReset" title="Restablecer zoom">⤢</button>
+          </div>
+        </div>
+
+        <div class="timeline-container">
+          <div class="timeline-scroll-container" id="timelineScrollContainer">
+            <div class="timeline-ruler" id="timelineRuler"></div>
+            <div class="timeline-track-wrapper" id="timelineTrackWrapper">
+              <div id="pendingCutMarker" class="pending-cut-marker">
+                <button id="btnCancelPendingCut" class="cancel-pending-btn" title="Cancelar selección (Esc)">✕</button>
+              </div>
+              <div id="cutSegmentsContainer" class="cut-segments-container"></div>
+              <input type="range" id="progressBar" min="0" max="100" value="0" step="0.01">
+            </div>
+          </div>
+          <div class="trim-markers">
+            <span id="startTimeLabel">Corte: Inactivo</span>
+            <span id="currentTimeLabel">Tiempo: 00:00</span>
+            <span id="endTimeLabel">Duración: --:--</span>
+          </div>
+        </div>
+
+        <div class="controls-row">
+          <div class="controls-left">
+            <button class="btn" id="btnStepBack" title="Retroceder 1 Fotograma (←)">|<</button>
+            <button class="btn btn-primary" id="btnPlayPause">▶ Play</button>
+            <button class="btn" id="btnStepForward" title="Avanzar 1 Fotograma (→)">>|</button>
+            <button class="btn btn-danger" id="btnCut" title="Marcar inicio / fin de corte (C)">✂ Recortar</button>
+            <button class="btn" id="btnResetCuts" title="Eliminar todos los cortes">🔄 Reiniciar</button>
+          </div>
+          <div class="controls-right">
+            <button class="btn" id="btnUndo" title="Deshacer (Ctrl + Z)">↶</button>
+            <button class="btn" id="btnRedo" title="Rehacer (Ctrl + Shift + Z)">↷</button>
+          </div>
+        </div>
+
+        <div class="controls-row secondary-controls-row">
+          <div class="controls-left">
+            <label class="mini-control" title="Volumen">🔊
+              <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="1">
+            </label>
+            <button class="btn btn-icon" id="btnMute" title="Silenciar">🔊</button>
+            <label class="mini-control">
+              Velocidad
+              <select id="speedSelect" title="Velocidad de reproducción">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2">2x</option>
+              </select>
+            </label>
+            <button class="btn btn-icon" id="btnLoop" title="Repetir video">🔁</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- PANEL CENTRAL: SOLO VISTA PREVIA (FORMATO CELULAR) -->
+    <aside class="panel preview-panel">
+      <div class="card phone-card">
+        <div class="card-header-row">
+          <h2>Vista Previa (9:16)</h2>
+          <button class="btn btn-icon" id="btnFullscreen" title="Pantalla completa">⛶</button>
+        </div>
+
+        <div class="phone-wrapper" id="phoneWrapper">
+          <div class="phone-screen" id="phoneScreen">
+            <!-- Canvases dinámicos -->
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- PANEL DERECHO: FORMATOS Y DESCARGA -->
+    <aside class="panel options-panel">
+      <div class="card options-card">
+        <h2>Opciones de Formato</h2>
+
+        <div class="card-footer-row">
+          <h3>Cantidad de Cuadros</h3>
+          <div class="layout-options">
+            <button class="btn btn-layout active" onclick="setLayout(1, event)">1 Cuadro</button>
+            <button class="btn btn-layout" onclick="setLayout(2, event)">2 Cuadros</button>
+            <button class="btn btn-layout" onclick="setLayout(3, event)">3 Cuadros</button>
+            <button class="btn btn-layout" onclick="setLayout(4, event)">4 Cuadros</button>
+          </div>
+
+          <h3 style="margin-top: 8px;">Estilo de Formato</h3>
+          <div class="preset-icon-picker" id="presetPicker">
+            <!-- Presets dinámicos -->
+          </div>
+
+          <div class="download-section">
+            <button class="btn btn-download" id="btnDownload">⬇ Descargar Video Editado</button>
+            <span class="download-hint">Exporta en .webm aplicando los cortes y el formato de cuadros seleccionado.</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,839 @@
+/* ==========================================================================
+   1. ESTILOS GENERALES Y LAYOUT BASE
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: #121214;
+  color: #e1e1e6;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-header {
+  height: 50px;
+  background-color: #202024;
+  border-bottom: 1px solid #29292e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-header h1 {
+  font-size: 1.2rem;
+}
+
+/* 3 columnas: izquierda flexible (video+timeline), centro fijo (preview celular), derecha fija (opciones) */
+.studio-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px 300px;
+  gap: 12px;
+  padding: 12px;
+  height: calc(100vh - 50px);
+  width: 100%;
+  min-height: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* MODIFICADO: Se elimina el overflow-y para evitar el scroll vertical */
+.left-panel {
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  background-color: #202024;
+  border: 1px solid #29292e;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.card-footer-row {
+  margin-top: 8px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card h2, .card h3 {
+  font-size: 0.9rem;
+  color: #a8a8b3;
+}
+
+/* ==========================================================================
+   2. PANEL IZQUIERDO: REPRODUCTOR DE VIDEO (FLEXIBLE SIN SCROLL)
+   ========================================================================== */
+/* MODIFICADO: Permite ajustarse dinámicamente según la altura del contenedor */
+.left-panel .video-card {
+  flex: 1;
+  min-height: 0;
+}
+
+/* MODIFICADO: Cambiado de aspect-ratio fijo a tamaño flexible para ajustarse al espacio disponible */
+.video-wrapper {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  background-color: #000;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  user-select: none;
+  border: 2px dashed transparent;
+  transition: border-color 0.2s;
+}
+
+.video-wrapper.drag-active {
+  border-color: #8257e5;
+}
+
+.drop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(130, 87, 229, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 20;
+}
+
+.video-wrapper.drag-active .drop-overlay {
+  opacity: 1;
+}
+
+.drop-overlay span {
+  font-weight: bold;
+  background: #202024;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid #8257e5;
+}
+
+.video-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* ==========================================================================
+   3. CUADROS INTERACTIVOS SOBRE EL VIDEO (CROP BOXES)
+   ========================================================================== */
+.video-crop-box {
+  position: absolute;
+  border: 2px solid #8257e5;
+  background-color: rgba(130, 87, 229, 0.25);
+  cursor: move;
+  box-sizing: border-box;
+  z-index: 10;
+  border-radius: 4px;
+}
+
+.video-crop-box.crop-box-2 {
+  border-color: #04d361;
+  background-color: rgba(4, 211, 97, 0.25);
+}
+
+.video-crop-box.crop-box-3 {
+  border-color: #ff9900;
+  background-color: rgba(255, 153, 0, 0.25);
+}
+
+.video-crop-box.crop-box-4 {
+  border-color: #ff4d9e;
+  background-color: rgba(255, 77, 158, 0.25);
+}
+
+.crop-label {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: #ffffff;
+  border: 2px solid #8257e5;
+  right: -6px;
+  bottom: -6px;
+  cursor: se-resize;
+  border-radius: 2px;
+}
+
+.crop-box-2 .resize-handle { border-color: #04d361; }
+.crop-box-3 .resize-handle { border-color: #ff9900; }
+.crop-box-4 .resize-handle { border-color: #ff4d9e; }
+
+/* ==========================================================================
+   4. LÍNEA DE TIEMPO Y CONTROLES
+   (min-width:0 en toda la cadena evita que el zoom "empuje" el layout general)
+   ========================================================================== */
+/* MODIFICADO: Mantiene un tamaño fijo en la parte inferior para no encogerse ni sobrepasar la pantalla */
+.timeline-card {
+  height: auto;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #a8a8b3;
+}
+
+.zoom-controls #zoomLevelLabel {
+  min-width: 38px;
+  text-align: center;
+}
+
+.timeline-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+.timeline-scroll-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: #41414c #121214;
+}
+
+.timeline-scroll-container::-webkit-scrollbar {
+  height: 6px;
+}
+.timeline-scroll-container::-webkit-scrollbar-thumb {
+  background: #41414c;
+  border-radius: 3px;
+}
+
+.timeline-ruler {
+  position: relative;
+  height: 18px;
+  min-width: 100%;
+}
+
+.ruler-tick {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ruler-label {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  font-size: 0.65rem;
+  color: #7a7a85;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.timeline-track-wrapper {
+  position: relative;
+  width: 100%;
+  min-width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  background-color: #121214;
+  border-radius: 6px;
+}
+
+#progressBar {
+  position: absolute;
+  top: 13px;
+  left: 0;
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  appearance: none;
+  z-index: 10;
+  cursor: pointer;
+  margin: 0;
+}
+
+#progressBar::-webkit-slider-runnable-track {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+}
+
+#progressBar::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 22px;
+  background: #ffffff;
+  border: 2px solid #8257e5;
+  border-radius: 4px;
+  margin-top: -5px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.5);
+}
+
+.pending-cut-marker {
+  position: absolute;
+  top: 9px;
+  width: 3px;
+  height: 20px;
+  background-color: #ff9900;
+  z-index: 12;
+  display: none;
+  box-shadow: 0 0 8px #ff9900;
+}
+
+.cancel-pending-btn {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ff9900;
+  color: #202024;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.cancel-pending-btn:hover {
+  background-color: #ffb733;
+}
+
+.cut-segments-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.cut-segment {
+  position: absolute;
+  top: 13px;
+  height: 12px;
+  background-color: rgba(229, 81, 81, 0.65);
+  border-left: 2px solid #e55151;
+  border-right: 2px solid #e55151;
+  pointer-events: auto;
+  box-sizing: border-box;
+  transition: background-color 0.15s ease;
+}
+
+.cut-segment:hover {
+  background-color: rgba(229, 81, 81, 0.85);
+}
+
+.trash-btn {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #e55151;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+  z-index: 15;
+}
+
+.trash-btn:hover {
+  background-color: #f76767;
+  transform: translateX(-50%) scale(1.2);
+}
+
+.trim-markers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #a8a8b3;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.secondary-controls-row {
+  margin-top: 4px;
+}
+
+.controls-left, .controls-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.mini-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #a8a8b3;
+}
+
+.mini-control input[type="range"] {
+  width: 70px;
+}
+
+.mini-control select {
+  background-color: #29292e;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+}
+
+.btn {
+  background-color: #29292e;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.btn:hover:not(:disabled) { background-color: #323238; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-primary { background-color: #8257e5; }
+.btn-primary:hover:not(:disabled) { background-color: #9466ff; }
+.btn-danger { background-color: #e55151; }
+.btn-danger:hover:not(:disabled) { background-color: #f76767; }
+.btn-upload { background-color: #323238; border: 1px solid #41414c; }
+
+.btn-icon {
+  padding: 6px 10px;
+  min-width: 34px;
+  text-align: center;
+}
+
+.btn-icon.active {
+  background-color: #8257e5;
+}
+
+/* ==========================================================================
+   5. PANEL CENTRAL: VISTA PREVIA CELULAR
+   El tamaño real en px lo calcula JS (fitPhoneScreen) para garantizar 9:16 exacto
+   ========================================================================== */
+.preview-panel .phone-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.phone-wrapper {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+  min-width: 0;
+}
+
+.phone-screen {
+  /* width/height reales los fija JS; esto es solo un fallback inicial */
+  aspect-ratio: 9 / 16;
+  background-color: #000;
+  border: 3px solid #323238;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+}
+
+.phone-screen:fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  aspect-ratio: unset;
+  border: none;
+  border-radius: 0;
+}
+
+.frame-box {
+  width: 100%;
+  background-color: #121214;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px dashed #8257e5;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.frame-box.frame-2 { border-color: #04d361; }
+.frame-box.frame-3 { border-color: #ff9900; }
+.frame-box.frame-4 { border-color: #ff4d9e; }
+
+.frame-box canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  display: block;
+}
+
+.phone-frame-tag {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-size: 0.6rem;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 5;
+  color: #fff;
+  border-left: 3px solid #8257e5;
+}
+
+.phone-frame-tag.tag-2 { border-left-color: #04d361; }
+.phone-frame-tag.tag-3 { border-left-color: #ff9900; }
+.phone-frame-tag.tag-4 { border-left-color: #ff4d9e; }
+
+/* ==========================================================================
+   6. PANEL DERECHO: OPCIONES DE FORMATO
+   ========================================================================== */
+.options-panel .options-card {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.layout-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-layout {
+  flex: 1;
+  min-width: 70px;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+}
+
+.btn-layout.active {
+  border: 2px solid #8257e5;
+  background-color: #323238;
+}
+
+.download-section {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.btn-download {
+  width: 100%;
+  background-color: #04d361;
+  color: #06210f;
+  font-weight: 700;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.btn-download:hover:not(:disabled) { background-color: #1fe37c; }
+.btn-download:disabled { opacity: 0.7; cursor: progress; }
+
+.download-hint {
+  font-size: 0.65rem;
+  color: #7a7a85;
+  margin-top: 5px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   7. FORMATOS DE PANTALLA (dentro de la vista previa celular)
+   ========================================================================== */
+.phone-screen.layout-1-full { justify-content: stretch; padding: 0; }
+.phone-screen.layout-1-full .frame-box { height: 100%; flex: 1; }
+
+.phone-screen.layout-1-sq { justify-content: center; }
+.phone-screen.layout-1-sq .frame-box { width: 100%; aspect-ratio: 1 / 1; height: auto; }
+
+.phone-screen.layout-1-yt { justify-content: center; }
+.phone-screen.layout-1-yt .frame-box { width: 100%; aspect-ratio: 16 / 9; height: auto; }
+
+.phone-screen.layout-1-panoramic { justify-content: center; }
+.phone-screen.layout-1-panoramic .frame-box { width: 100%; aspect-ratio: 4 / 5; height: auto; }
+
+.phone-screen.layout-2-equal { justify-content: stretch; padding: 0; }
+.phone-screen.layout-2-equal .frame-box { flex: 1; height: 50%; }
+
+.phone-screen.layout-2-horizontal {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 4px;
+}
+.phone-screen.layout-2-horizontal .frame-box {
+  flex: 1;
+  aspect-ratio: 1 / 1;
+  height: auto;
+}
+
+.phone-screen.layout-2-yt-top { display: flex; flex-direction: column; justify-content: center; }
+.phone-screen.layout-2-yt-top .frame-box:nth-child(1) { width: 100%; aspect-ratio: 16 / 9; flex: none; }
+.phone-screen.layout-2-yt-top .frame-box:nth-child(2) { width: 100%; aspect-ratio: 1 / 1; flex: none; }
+
+.phone-screen.layout-2-yt-bottom { display: flex; flex-direction: column; justify-content: center; }
+.phone-screen.layout-2-yt-bottom .frame-box:nth-child(1) { width: 100%; aspect-ratio: 1 / 1; flex: none; }
+.phone-screen.layout-2-yt-bottom .frame-box:nth-child(2) { width: 100%; aspect-ratio: 16 / 9; flex: none; }
+
+.phone-screen.layout-2-pip { position: relative; padding: 0; }
+.phone-screen.layout-2-pip .frame-box:nth-child(1) { width: 100%; height: 100%; }
+.phone-screen.layout-2-pip .frame-box:nth-child(2) {
+  position: absolute;
+  width: 38%;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  bottom: 14px;
+  right: 14px;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+  z-index: 5;
+}
+
+.phone-screen.layout-3-equal { display: flex; flex-direction: column; padding: 0; }
+.phone-screen.layout-3-equal .frame-box { flex: 1; height: 33.33%; }
+
+.phone-screen.layout-3-horizontal { display: flex; flex-direction: row; justify-content: center; align-items: center; gap: 4px; }
+.phone-screen.layout-3-horizontal .frame-box { flex: 1; aspect-ratio: 9 / 16; height: auto; }
+
+.phone-screen.layout-3-grid-1-2 { display: grid; grid-template-rows: 1fr 1fr; grid-template-columns: 1fr 1fr; width: 100%; height: 100%; padding: 0; }
+.phone-screen.layout-3-grid-1-2 .frame-box:nth-child(1) { grid-column: 1 / span 2; grid-row: 1; height: 100%; }
+.phone-screen.layout-3-grid-1-2 .frame-box:nth-child(2) { grid-column: 1; grid-row: 2; height: 100%; }
+.phone-screen.layout-3-grid-1-2 .frame-box:nth-child(3) { grid-column: 2; grid-row: 2; height: 100%; }
+
+.phone-screen.layout-3-grid-2-1 { display: grid; grid-template-rows: 1fr 1fr; grid-template-columns: 1fr 1fr; width: 100%; height: 100%; padding: 0; }
+.phone-screen.layout-3-grid-2-1 .frame-box:nth-child(1) { grid-column: 1; grid-row: 1; height: 100%; }
+.phone-screen.layout-3-grid-2-1 .frame-box:nth-child(2) { grid-column: 2; grid-row: 1; height: 100%; }
+.phone-screen.layout-3-grid-2-1 .frame-box:nth-child(3) { grid-column: 1 / span 2; grid-row: 2; height: 100%; }
+
+.phone-screen.layout-3-main-side {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  width: 100%; height: 100%; padding: 0; gap: 4px;
+}
+.phone-screen.layout-3-main-side .frame-box:nth-child(1) { grid-column: 1; grid-row: 1 / span 2; height: 100%; }
+.phone-screen.layout-3-main-side .frame-box:nth-child(2) { grid-column: 2; grid-row: 1; height: 100%; }
+.phone-screen.layout-3-main-side .frame-box:nth-child(3) { grid-column: 2; grid-row: 2; height: 100%; }
+
+.phone-screen.layout-4-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  width: 100%; height: 100%; padding: 0; gap: 4px;
+}
+.phone-screen.layout-4-grid .frame-box { height: 100%; }
+
+.phone-screen.layout-4-stack { display: flex; flex-direction: column; padding: 0; gap: 4px; }
+.phone-screen.layout-4-stack .frame-box { flex: 1; height: 25%; }
+
+.phone-screen.layout-4-main-plus-3 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  width: 100%; height: 100%; padding: 0; gap: 4px;
+}
+.phone-screen.layout-4-main-plus-3 .frame-box:nth-child(1) { grid-column: 1; grid-row: 1 / span 3; height: 100%; }
+.phone-screen.layout-4-main-plus-3 .frame-box:nth-child(2) { grid-column: 2; grid-row: 1; height: 100%; }
+.phone-screen.layout-4-main-plus-3 .frame-box:nth-child(3) { grid-column: 2; grid-row: 2; height: 100%; }
+.phone-screen.layout-4-main-plus-3 .frame-box:nth-child(4) { grid-column: 2; grid-row: 3; height: 100%; }
+
+/* ==========================================================================
+   8. PICKER DE ICONOS
+   ========================================================================== */
+.preset-icon-picker {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  width: 100%;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.2s ease;
+}
+
+.icon-btn:hover {
+  transform: translateY(-2px);
+}
+
+.layout-preview-box {
+  width: 38px;
+  height: 68px;
+  background-color: #000;
+  border: 2px solid #41414c;
+  border-radius: 6px;
+  padding: 3px;
+  display: flex;
+  gap: 2px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.icon-btn.active .layout-preview-box {
+  border-color: #8257e5;
+  box-shadow: 0 0 8px rgba(130, 87, 229, 0.5);
+}
+
+.layout-preview-box span {
+  background-color: #8257e5;
+  border-radius: 2px;
+}
+
+.preview-1-full span { width: 100%; height: 100%; }
+.preview-1-sq { display: flex; align-items: center; justify-content: center; }
+.preview-1-sq span { width: 100%; aspect-ratio: 1 / 1; }
+.preview-1-yt { display: flex; align-items: center; justify-content: center; }
+.preview-1-yt span { width: 100%; aspect-ratio: 16 / 9; }
+.preview-1-panoramic { display: flex; align-items: center; justify-content: center; }
+.preview-1-panoramic span { width: 100%; aspect-ratio: 4 / 5; }
+
+.preview-2-equal { flex-direction: column; }
+.preview-2-equal span { flex: 1; width: 100%; }
+
+.preview-2-horizontal { flex-direction: row; align-items: center; justify-content: center; }
+.preview-2-horizontal span { flex: 1; height: 18px; }
+
+.preview-2-yt-top { flex-direction: column; justify-content: center; gap: 2px; }
+.preview-2-yt-top span:nth-child(1) { width: 100%; aspect-ratio: 16 / 9; flex-shrink: 0; }
+.preview-2-yt-top span:nth-child(2) { width: 100%; aspect-ratio: 1 / 1; flex-shrink: 0; }
+
+.preview-2-yt-bottom { flex-direction: column; justify-content: center; gap: 2px; }
+.preview-2-yt-bottom span:nth-child(1) { width: 100%; aspect-ratio: 1 / 1; flex-shrink: 0; }
+.preview-2-yt-bottom span:nth-child(2) { width: 100%; aspect-ratio: 16 / 9; flex-shrink: 0; }
+
+.preview-2-pip { position: relative; }
+.preview-2-pip span:nth-child(1) { width: 100%; height: 100%; }
+.preview-2-pip span:nth-child(2) { position: absolute; width: 35%; height: 30%; bottom: 4px; right: 4px; border: 1px solid #fff; background-color: #9466ff; }
+
+.preview-3-stack { flex-direction: column; }
+.preview-3-stack span { flex: 1; width: 100%; }
+
+.preview-3-horizontal { flex-direction: row; align-items: center; justify-content: center; }
+.preview-3-horizontal span { flex: 1; height: 18px; }
+
+.preview-3-grid-1-2 { display: grid; grid-template-rows: 1fr 1fr; grid-template-columns: 1fr 1fr; }
+.preview-3-grid-1-2 span:nth-child(1) { grid-column: 1 / span 2; }
+
+.preview-3-grid-2-1 { display: grid; grid-template-rows: 1fr 1fr; grid-template-columns: 1fr 1fr; }
+.preview-3-grid-2-1 span:nth-child(3) { grid-column: 1 / span 2; }
+
+.preview-3-main-side { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
+.preview-3-main-side span:nth-child(1) { grid-column: 1; grid-row: 1 / span 2; }
+.preview-3-main-side span:nth-child(2) { grid-column: 2; grid-row: 1; }
+.preview-3-main-side span:nth-child(3) { grid-column: 2; grid-row: 2; }
+
+.preview-4-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+.preview-4-stack { flex-direction: column; }
+.preview-4-stack span { flex: 1; width: 100%; }
+
+.preview-4-main-plus-3 { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+.preview-4-main-plus-3 span:nth-child(1) { grid-column: 1; grid-row: 1 / span 3; }
+.preview-4-main-plus-3 span:nth-child(2) { grid-column: 2; grid-row: 1; }
+.preview-4-main-plus-3 span:nth-child(3) { grid-column: 2; grid-row: 2; }
+.preview-4-main-plus-3 span:nth-child(4) { grid-column: 2; grid-row: 3; }
